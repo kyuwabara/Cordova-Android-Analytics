@@ -8,9 +8,8 @@
 
 package com.phonegap.plugins.analytics;
 
-import org.apache.cordova.api.Plugin;
-import org.apache.cordova.api.PluginResult;
-import org.apache.cordova.api.PluginResult.Status;
+import org.apache.cordova.api.CordovaPlugin;
+import org.apache.cordova.api.CallbackContext;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -19,7 +18,7 @@ import com.google.analytics.tracking.android.Tracker;
 
 import android.util.Log;
 
-public class GoogleAnalyticsTracker extends Plugin {
+public class GoogleAnalyticsTracker extends CordovaPlugin {
 	public static final String START = "start";
 	public static final String STOP = "stop";
 	public static final String TRACK_PAGE_VIEW = "trackPageView";
@@ -36,76 +35,80 @@ public class GoogleAnalyticsTracker extends Plugin {
 	}
 
 	@Override
-	public PluginResult execute(String action, JSONArray data, String callbackId) {
-		PluginResult result = null;
+	public boolean execute(String action, JSONArray data, CallbackContext callbackContext) throws JSONException {
 		if (START.equals(action)) {
-			start();
-			result = new PluginResult(Status.OK);
-			System.out.println(result);
+			start(callbackContext);
+
 		} else if (TRACK_PAGE_VIEW.equals(action)) {
-			try {
-				trackPageView(data.getString(0));
-				result = new PluginResult(Status.OK);
-			} catch (JSONException e) {
-				result = new PluginResult(Status.JSON_EXCEPTION);
-			}
+			trackPageView(data, callbackContext);
+
 		} else if (TRACK_EVENT.equals(action)) {
-			try {
-				trackEvent(data.getString(0), data.getString(1),
-						data.getString(2), data.getLong(3));
-				result = new PluginResult(Status.OK);
-			} catch (JSONException e) {
-				result = new PluginResult(Status.JSON_EXCEPTION);
-			}
+			trackEvent(data, callbackContext);
+
 		} else if (STOP.equals(action)) {
-			stop();
-			result = new PluginResult(Status.OK);
+			stop(callbackContext);
+
 		} else if (SET_CUSTOM_DIMENSION.equals(action)) {
-			try {
-				setCustomDimension(data.getInt(0), data.getString(1));
-				result = new PluginResult(Status.OK);
-			} catch (JSONException e) {
-				result = new PluginResult(Status.JSON_EXCEPTION);
-			}
+			setCustomDimension(data, callbackContext);
+
 		} else if (TRACK_TIMING.equals(action)) {
-			try {
-				trackTiming(data.getString(0), data.getLong(1),
-						data.getString(2), data.getString(3));
-				result = new PluginResult(Status.OK);
-			} catch (JSONException e) {
-				result = new PluginResult(Status.JSON_EXCEPTION);
-			}
+			trackTiming(data, callbackContext);
+
 		} else {
-			result = new PluginResult(Status.INVALID_ACTION);
+			// invalid action
+			return false;
 		}
-		return result;
+
+		return true;
 	}
 
-	private void start() {
+	private void start(CallbackContext callbackContext) {
 		instance.activityStart(this.cordova.getActivity());
 		tracker = EasyTracker.getTracker();
+		callbackContext.success();
 	}
 
-	private void stop() {
+	private void stop(CallbackContext callbackContext) {
 		instance.activityStop(this.cordova.getActivity());
+		callbackContext.success();
 	}
 
-	private void trackPageView(String key) {
-		tracker.sendView(key);
+	private void trackPageView(JSONArray data, CallbackContext callbackContext) throws JSONException {
+		try {
+			tracker.sendView(data.getString(0));
+			callbackContext.success();
+		} catch (JSONException e) {
+			callbackContext.error(e.getMessage());
+		}
 	}
 
-	private void trackEvent(String category, String action, String label,
-			long value) {
-		tracker.sendEvent(category, action, label, value);
+	private void trackEvent(JSONArray data, CallbackContext callbackContext) throws JSONException {
+		try {
+			tracker.sendEvent(data.getString(0), data.getString(1),
+					data.getString(2), data.getLong(3));
+			callbackContext.success();
+		} catch (JSONException e) {
+			callbackContext.error(e.getMessage());
+		}
 	}
 
-	private void trackTiming(String category, long loadTime, String name,
-			String label) {
-		tracker.sendTiming(category, loadTime, name, label);
+	private void trackTiming(JSONArray data, CallbackContext callbackContext) throws JSONException {
+		try {
+			tracker.sendTiming(data.getString(0), data.getLong(1),
+					data.getString(2), data.getString(3));
+			callbackContext.success();
+		} catch (JSONException e) {
+			callbackContext.error(e.getMessage());
+		}
 	}
 
-	private void setCustomDimension(int Index, String dimensionValue) {
-		tracker.setCustomDimension(Index, dimensionValue);
+	private void setCustomDimension(JSONArray data, CallbackContext callbackContext) throws JSONException {
+		try {
+			tracker.setCustomDimension(data.getInt(0), data.getString(1));
+			callbackContext.success();
+		} catch (JSONException e) {
+			callbackContext.error(e.getMessage());
+		}
 	}
 
 }
